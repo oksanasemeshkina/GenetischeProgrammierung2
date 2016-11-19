@@ -20,6 +20,8 @@ public enum befehl {
 
 public class VM {
     final int MAX = 1000
+    final int MAX_RUNS = 5000
+    final int MEM_WERTE = 10 << 3
 
     ArrayList<Integer> memory = new ArrayList<>()
     ArrayList<Integer> stack = new ArrayList<>()
@@ -45,7 +47,7 @@ public class VM {
 
     void simulate() {
         int i = 0
-        while (programCounter < MAX && (stackPointer > 0 || i < 10)) {
+        while (programCounter < MAX && (stackPointer > 0 || i < 10) && i < MAX_RUNS) {
             switch (memory[programCounter] & 7) {
                 case befehl.LOAD.wert:
                     register = memory[programCounter] >> 3
@@ -95,12 +97,12 @@ public class VM {
 
         //3 Randomzahlen ins Memory schreiben mit PUSH-Befehl
         100.times {
-            zahl = random.nextInt(10 << 3)
+            zahl = random.nextInt(MEM_WERTE)
             zahl = (zahl & (Integer.MAX_VALUE - 7)) + (int) befehl.LOAD.wert
             //          println zahl & 7
             memory.add(zahl)
 
-            zahl = random.nextInt(10 << 3)
+            zahl = random.nextInt(MEM_WERTE)
             zahl = (zahl & (Integer.MAX_VALUE - 7)) + (int) befehl.PUSH.wert
             //            println zahl & 7
             memory.add(zahl)
@@ -108,26 +110,26 @@ public class VM {
 
         //Rest bis 1000 mit beliebigen Befehlen auffüllen
         while (memory.size() < 1000) {
-            zahl = random.nextInt(10 << 3)
+            zahl = random.nextInt(MEM_WERTE)
             memory.add(zahl)
         }
     }
 
     int calculateFitness() {
         HashSet<Integer> prims = new HashSet<>()
-        println "Stackgröße: ${stack.size()}"
+        //    println "Stackgröße: ${stack.size()}"
         stack.each {
             if (istPrimzahl(it)) {
                 if (prims.add(it)) {
-                    print "$it "
+                    //  print "$it "
                 }
             }
         }
-        println()
+        //println()
         prims.size()
     }
 
-    boolean istPrimzahl(int zahl) {
+    static boolean istPrimzahl(int zahl) {
         if (zahl > 1) {
             boolean isPrimzahl = true;
             for (int i = 2; i < zahl && isPrimzahl; i++) {
@@ -138,6 +140,14 @@ public class VM {
             return isPrimzahl
         } else {
             return false
+        }
+    }
+
+    def mutate(int amount) {
+        amount.times {
+            int newCmd = random.nextInt(MEM_WERTE)
+            int mutateCmdIndex = random.nextInt(memory.size())
+            memory[mutateCmdIndex] = newCmd
         }
     }
 
@@ -185,6 +195,20 @@ public class VM {
         map.each {
             key, value -> println "$key: $value"
         }
+    }
+
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        VM vm = new VM();
+        vm.stack = this.stack.clone()
+        vm.memory = this.memory.clone()
+        return vm
+    }
+
+    def reset() {
+        this.programCounter = 0
+        this.stackPointer = 0
+        this.register = 0
     }
 }
 
